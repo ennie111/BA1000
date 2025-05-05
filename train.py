@@ -99,7 +99,7 @@ def train_on_step_feedback(reward_net, dataset, epochs=3, batch_size=64):
             optimizer.step()
             total_loss += loss.item()
 
-        print(f"🎓 SSFB Epoch {epoch+1}, Loss: {total_loss:.4f}")
+        print(f"SSFB Epoch {epoch+1}, Loss: {total_loss:.4f}")
 
 
 def train():
