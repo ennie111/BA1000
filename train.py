@@ -14,6 +14,7 @@ from imitation.policies.base import FeedForward32Policy, NormalizeFeaturesExtrac
 from imitation.util.networks import RunningNorm
 from imitation.algorithms import preference_comparisons
 
+from feedback.preference_comparison import FeedbackPreferenceComparisons
 from reward_vec_env_wrapper_feedback import RewardVecEnvWrapperWithFeedback
 from feedback.dataset import SingleStepFeedbackDataset
 
@@ -69,46 +70,13 @@ class EnsembleRewardFn:
             return torch.stack(all_rews, dim=1).cpu().numpy()
 
 
-def train_on_step_feedback(reward_net, dataset, epochs=3, batch_size=64):
-    """Feinjustierung des RewardNet durch direktes Feedback."""
-    if len(dataset) == 0:
-        print("Kein direktes Feedback – SSFB-Training übersprungen.")
-        return
-
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    optimizer = torch.optim.Adam(reward_net.parameters(), lr=1e-3)
-
-    for epoch in range(epochs):
-        total_loss = 0.0
-        for obs, act, next_obs, done, feedback in loader:
-            obs = torch.tensor(obs, dtype=torch.float32)
-            # Falls act eindimensional ist (z. B. [64]) → umformen zu [64, 1]
-            if act.ndim == 1:
-                act = act.unsqueeze(1)
-            act = act.to(dtype=torch.float32)
-
-            next_obs = torch.tensor(next_obs, dtype=torch.float32)
-            done = torch.tensor(done, dtype=torch.float32)
-            feedback = torch.tensor(feedback, dtype=torch.float32)
-            obs_p, act_p, next_obs_p, done_p = reward_net.preprocess(obs, act, next_obs, done)
-            pred = reward_net(obs_p, act_p, next_obs_p, done_p).squeeze()
-            loss = F.mse_loss(pred, feedback)
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            total_loss += loss.item()
-
-        print(f"SSFB Epoch {epoch+1}, Loss: {total_loss:.4f}")
-
-
 def train():
     rng = np.random.default_rng(42)
     num_models = 3
     reward_nets, agent, feedback_dataset = load_models(num_models)
     ensemble_reward_fn = EnsembleRewardFn(reward_nets)
 
-    # Neue Umgebung für das Training
+    # Umgebung für Training
     venv = make_vec_env("LunarLander-v2", rng=rng)
     wrapped_env = RewardVecEnvWrapperWithFeedback(
         venv,
@@ -122,7 +90,7 @@ def train():
     gatherer = preference_comparisons.SyntheticGatherer(rng=rng)
 
     for i in range(num_models):
-        print(f"\n PbRL-Feintraining für Modell {i}")
+        print(f"\n=== PbRL-Feintraining für Modell {i} ===")
         trainer = preference_comparisons.BasicRewardTrainer(
             preference_model=preference_comparisons.PreferenceModel(reward_nets[i]),
             loss=preference_comparisons.CrossEntropyRewardLoss(),
@@ -138,7 +106,8 @@ def train():
             rng=rng,
         )
 
-        pref_comp = preference_comparisons.PreferenceComparisons(
+        # ⚠️ HIER: Deine neue erweiterte Klasse wird verwendet
+        pref_comp = FeedbackPreferenceComparisons(
             trajectory_generator=trajectory_gen,
             reward_model=reward_nets[i],
             num_iterations=10,
@@ -150,14 +119,19 @@ def train():
             allow_variable_horizon=True,
             initial_epoch_multiplier=1,
             initial_comparison_frac=0.1,
+            feedback_dataset=feedback_dataset,  
         )
 
+        # Standardtraining
         pref_comp.train(total_timesteps=100_000, total_comparisons=100)
-        train_on_step_feedback(reward_nets[i], feedback_dataset)
+
+        # Speichern
         torch.save(reward_nets[i].state_dict(), f"models/reward_net_{i}_finetuned.pth")
         print(f"Reward-Netzwerk {i} (finetuned) gespeichert!")
 
-    print("Training abgeschlossen!")
+    print("🎉 Training abgeschlossen!")
+
+
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ class RewardVecEnvWrapperWithFeedback(VecEnvWrapper):
         venv: VecEnv,
         reward_fn: reward_function.RewardFn,
         step_feedback_dataset: SingleStepFeedbackDataset,
-        uncertainty_threshold: float = 0.5,
+        uncertainty_threshold: float = 0.25,
         ep_history: int = 100,
     ):
         super().__init__(venv)
@@ -78,22 +78,18 @@ class RewardVecEnvWrapperWithFeedback(VecEnvWrapper):
                 model_rews = all_model_rews[i]
                 variance = np.var(model_rews)
                 if variance > self.uncertainty_threshold:
-                    if variance > self.uncertainty_threshold:
-                        if env_rews[i] > +1:
-                            feedback = +1
-                        elif env_rews[i] < -1:
-                            feedback = -1
-                        else:
-                            feedback = 0
-                    if feedback != 0:
-                        self.step_feedback_dataset.push(
-                            obs=obs_old[i],
-                            act=acts[i],
-                            next_obs=next_obs[i],
-                            done=dones_arr[i],
-                            feedback=feedback,
-                        )
-                    print(f"[Feedback] env={i} | var={variance:.3f} | feedback={feedback}")
+                    step_rew = rews[i]
+                    feedback = +1 if step_rew > 0 else -1
+
+                    self.step_feedback_dataset.push(
+                        obs=obs_old[i],
+                        act=acts[i],
+                        next_obs=next_obs[i],
+                        done=dones_arr[i],
+                        feedback=feedback,
+                    )
+                    print(f"[Feedback] env={i} | var={variance:.3f} | env_rew={env_rews[i]:.3f} |step_rew={step_rew:.3f}| feedback={feedback}")
+
 
         # Statistiken aktualisieren
         done_mask = np.asarray(dones, dtype="bool").reshape((len(dones),))
