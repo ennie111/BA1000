@@ -78,14 +78,21 @@ class RewardVecEnvWrapperWithFeedback(VecEnvWrapper):
                 model_rews = all_model_rews[i]
                 variance = np.var(model_rews)
                 if variance > self.uncertainty_threshold:
-                    feedback = +1 if env_rews[i] > 0 else -1
-                    self.step_feedback_dataset.push(
-                        obs=obs_old[i],
-                        act=acts[i],
-                        next_obs=next_obs[i],
-                        done=dones_arr[i],
-                        feedback=feedback,
-                    )
+                    if variance > self.uncertainty_threshold:
+                        if env_rews[i] > +1:
+                            feedback = +1
+                        elif env_rews[i] < -1:
+                            feedback = -1
+                        else:
+                            feedback = 0
+                    if feedback != 0:
+                        self.step_feedback_dataset.push(
+                            obs=obs_old[i],
+                            act=acts[i],
+                            next_obs=next_obs[i],
+                            done=dones_arr[i],
+                            feedback=feedback,
+                        )
                     print(f"[Feedback] env={i} | var={variance:.3f} | feedback={feedback}")
 
         # Statistiken aktualisieren
