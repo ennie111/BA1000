@@ -19,7 +19,7 @@ class FeedbackPreferenceComparisons(PreferenceComparisons):
         total_comparisons: int,
         callback: Optional[Callable[[int], None]] = None,
     ) -> Mapping[str, Any]:
-        # gleiche Logik wie original – bis auf den einen Extra-Schritt nach dem Reward-Training
+        
         initial_comparisons = int(total_comparisons * self.initial_comparison_frac)
         total_comparisons -= initial_comparisons
 
@@ -49,13 +49,21 @@ class FeedbackPreferenceComparisons(PreferenceComparisons):
             preferences = self.preference_gatherer(fragments)
             self.dataset.push(fragments, preferences)
 
-            epoch_multiplier = self.initial_epoch_multiplier if i == 0 else 1.0
-            self.reward_trainer.train(self.dataset, epoch_multiplier=epoch_multiplier)
+            # HIER Training über mehrere Epochen hinweg, abwechselnd PbRL und SSFB
+            epochs = self.reward_trainer.epochs if hasattr(self.reward_trainer, "epochs") else 3
+            epochs = int(self.initial_epoch_multiplier) if i == 0 else epochs
 
-            ### NEU: SSFB direkt nach Reward-Training
-            if self.feedback_dataset is not None:
-                print(" SSFB-Training nach PbRL-Iteration")
-                train_on_step_feedback(self.model, self.feedback_dataset)
+            for joint_epoch in range(epochs):
+                print(f"\n>>> Gemeinsame Reward-Training Epoche {joint_epoch + 1} (Iteration {i})")
+
+                # PbRL-Training (eine Epoche)
+                self.reward_trainer.train(self.dataset, epoch_multiplier=1.0)
+
+                # SSFB-Training (eine Epoche)
+                if self.feedback_dataset is not None:
+                    print("→ SSFB-Training (1 Epoche)")
+                    train_on_step_feedback(self.model, self.feedback_dataset, epochs=1)
+
 
             num_steps = timesteps_per_iteration
             if i == self.num_iterations - 1:

@@ -82,7 +82,7 @@ def train():
         venv,
         reward_fn=ensemble_reward_fn,
         step_feedback_dataset=feedback_dataset,
-        uncertainty_threshold=0.5,
+        uncertainty_threshold=0.25,
     )
 
     # PbRL-Komponenten
@@ -106,7 +106,7 @@ def train():
             rng=rng,
         )
 
-        # ⚠️ HIER: Deine neue erweiterte Klasse wird verwendet
+        # HIER neue PrefComp Klasse
         pref_comp = FeedbackPreferenceComparisons(
             trajectory_generator=trajectory_gen,
             reward_model=reward_nets[i],
@@ -129,7 +129,7 @@ def train():
         torch.save(reward_nets[i].state_dict(), f"models/reward_net_{i}_finetuned.pth")
         print(f"Reward-Netzwerk {i} (finetuned) gespeichert!")
 
-    print("🎉 Training abgeschlossen!")
+    print("Training abgeschlossen!")
 
 
 

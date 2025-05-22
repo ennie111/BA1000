@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-def train_on_step_feedback(reward_net, dataset, epochs=3, batch_size=64):
+def train_on_step_feedback(reward_net, dataset, epochs=1, batch_size=64):
     if len(dataset) == 0:
         print("Kein direktes Feedback – SSFB-Training übersprungen.")
         return
