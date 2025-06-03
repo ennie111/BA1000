@@ -10,7 +10,7 @@ def train_on_step_feedback(reward_net, dataset, epochs=1, batch_size=64):
         return
 
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    optimizer = torch.optim.Adam(reward_net.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(reward_net.parameters(), lr=3e-5)
 
     for epoch in range(epochs):
         total_loss = 0.0
