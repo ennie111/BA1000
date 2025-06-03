@@ -4,6 +4,7 @@ from typing import Optional, Callable, Mapping, Any
 
 from imitation.algorithms.preference_comparisons import PreferenceComparisons
 from imitation.util import util
+
 from feedback.train_utils import train_on_step_feedback
 
 
