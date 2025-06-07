@@ -79,7 +79,7 @@ class RewardVecEnvWrapperWithFeedback(VecEnvWrapper):
                 variance = np.var(model_rews)
                 if variance > self.uncertainty_threshold:
                     step_rew = rews[i]
-                    feedback = +1 if step_rew >1  else -1
+                    feedback = +1 if env_rews[i] >1  else -1
 
                     self.step_feedback_dataset.push(
                         obs=obs_old[i],
