@@ -188,7 +188,7 @@ for i in range(NUM_MODELS):
     pref_comp = preference_comparisons.PreferenceComparisons(
         trajectory_generator,
         reward_nets[i],
-        num_iterations=60,
+        num_iterations=80,
         fragmenter=fragmenter,
         preference_gatherer=gatherer,
         reward_trainer=reward_trainers[i],

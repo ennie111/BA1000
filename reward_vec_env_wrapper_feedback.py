@@ -59,12 +59,7 @@ class RewardVecEnvWrapperWithFeedback(VecEnvWrapper):
             else np.stack(obs_fixed)
         )
 
-        rews = self.reward_fn(
-            self._old_obs,
-            self._actions,
-            types.maybe_unwrap_dictobs(obs_fixed),
-            np.array(dones),
-        )
+        rews = env_rews
 
         # === UNCERTAINTY-BASED FEEDBACK HOOK ===
         if hasattr(self.reward_fn, "predict_processed_all"):
